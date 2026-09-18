@@ -19,19 +19,19 @@ function RoadmapContent({
 }: RoadmapContentProps) {
   const statusCategories = [
     {
-      name: "Planned",
+      name: "Planned" as const,
       color: "orange",
       description: "Ideas that are planned for development.",
       items: suggestions.filter((s) => s.status === "Planned"),
     },
     {
-      name: "In Progress",
+      name: "In Progress" as const,
       color: "purple",
       description: "Features currently being worked on.",
       items: suggestions.filter((s) => s.status === "In Progress"),
     },
     {
-      name: "Live",
+      name: "Live" as const,
       color: "cyan",
       description: "Features that are already available.",
       items: suggestions.filter((s) => s.status === "Live"),
