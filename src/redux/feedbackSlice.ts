@@ -67,6 +67,22 @@ const feedbackSlice = createSlice({
       }
     },
 
+    updateSuggestionStatus: (
+      state,
+      action: PayloadAction<{
+        id: number;
+        status: Status;
+      }>,
+    ) => {
+      const { id, status } = action.payload;
+
+      const suggestion = state.suggestions.find((s) => s.id === id);
+
+      if (suggestion) {
+        suggestion.status = status;
+      }
+    },
+
     deleteSuggestion: (state, action: PayloadAction<number>) => {
       const id = action.payload;
 
@@ -114,6 +130,7 @@ const feedbackSlice = createSlice({
 export const {
   addSuggestion,
   updateSuggestion,
+  updateSuggestionStatus,
   deleteSuggestion,
   toggleUpvote,
   addComment,

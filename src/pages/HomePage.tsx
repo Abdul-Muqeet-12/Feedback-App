@@ -7,10 +7,12 @@ import FeedbackModal from "../components/FeedbackModal";
 import { addSuggestion, toggleUpvote } from "../redux/feedbackSlice";
 import type {
   CategoryFilter,
+  StatusFilter,
   Suggestion,
   SuggestionFormData,
 } from "../types/feedback";
 import type { AppDispatch, RootState } from "../redux/store";
+import RoadmapModal from "../components/RoadmapModal";
 
 type SortOption =
   | "Most Upvotes"
@@ -32,12 +34,18 @@ function HomePage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("Most Upvotes");
   const [filterCategory, setFilterCategory] = useState<CategoryFilter>("All");
-  const filteredSuggestions =
-    filterCategory === "All"
-      ? suggestions
-      : suggestions.filter(
-          (suggestion) => suggestion.category === filterCategory,
-        );
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>("All");
+  const [roadmapOpen, setRoadmapOpen] = useState(false);
+
+  const filteredSuggestions = suggestions.filter((suggestion) => {
+    const categoryMatch =
+      filterCategory === "All" || suggestion.category === filterCategory;
+
+    const statusMatch =
+      filterStatus === "All" || suggestion.status === filterStatus;
+
+    return categoryMatch && statusMatch;
+  });
 
   const sortOptions: SortOption[] = [
     "Most Upvotes",
@@ -64,6 +72,10 @@ function HomePage() {
 
   // Close Add Feedback modal
   const closeModel = () => navigate(-1);
+
+  const openRoadmap = () => setRoadmapOpen(true);
+
+  const closeRoadmap = () => setRoadmapOpen(false);
 
   // Add new suggestion
   const handleAdd = (payload: SuggestionFormData) => {
@@ -109,8 +121,10 @@ function HomePage() {
           <Sidebar
             filterCategory={filterCategory}
             setFilterCategory={setFilterCategory}
+            filterStatus={filterStatus}
+            setFilterStatus={setFilterStatus}
             roadmapCount={roadmapCount}
-            openRoadmap={() => navigate("/roadmap")}
+            openRoadmap={openRoadmap}
             openAdd={openAdd}
           />
 
@@ -271,6 +285,11 @@ function HomePage() {
             onAdd={handleAdd}
             editingFeedback={null}
           />
+        )}
+
+        {/* Roadmap Modal */}
+        {roadmapOpen && (
+          <RoadmapModal isOpen={roadmapOpen} onClose={closeRoadmap} />
         )}
       </div>
     </main>

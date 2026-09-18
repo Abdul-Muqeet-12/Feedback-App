@@ -1,7 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import DetailView from "./components/DetailView";
 import HomePage from "./pages/HomePage";
-import RoadmapView from "./pages/Roadmapview";
 
 function App() {
   return (
@@ -13,7 +12,6 @@ function App() {
             <Route path="/feedback/:id" element={<DetailView />} />
             <Route path="/feedback/:id/edit" element={<DetailView />} />
 
-            <Route path="/roadmap" element={<RoadmapView />} />
             <Route path="/add" element={<HomePage />} />
             <Route path="*" element={<HomePage />} />
           </Routes>

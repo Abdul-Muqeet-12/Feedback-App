@@ -1,20 +1,21 @@
-import { ArrowLeft, ChevronUp, MessageCircle, Plus } from "lucide-react";
+import { useState } from "react";
+import { ChevronUp, MessageCircle, Plus } from "lucide-react";
 import type { Suggestion } from "../types/feedback";
 
 interface RoadmapContentProps {
   suggestions: Suggestion[];
-  onBack: () => void;
   onView: (item: Suggestion) => void;
   onAdd: () => void;
   onUpvote: (id: number) => void;
+  onStatusChange: (id: number, status: Suggestion["status"]) => void;
 }
 
 function RoadmapContent({
   suggestions,
-  onBack,
   onView,
   onAdd,
   onUpvote,
+  onStatusChange,
 }: RoadmapContentProps) {
   const statusCategories = [
     {
@@ -37,6 +38,8 @@ function RoadmapContent({
     },
   ];
 
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+
   return (
     <div>
       {/* Header */}
@@ -44,18 +47,6 @@ function RoadmapContent({
         <div className="mb-8 rounded-2xl bg-gray-800 p-5 text-white shadow-sm sm:p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <button
-                type="button"
-                onClick={onBack}
-                className="group mb-4 flex items-center gap-2 text-sm font-bold text-gray-300 transition hover:text-white"
-              >
-                <ArrowLeft
-                  size={17}
-                  className="transition-transform group-hover:-translate-x-1"
-                />
-                Go Back
-              </button>
-
               <h1 className="text-2xl font-bold sm:text-3xl">Roadmap</h1>
 
               <p className="mt-1 text-sm text-gray-400">
@@ -79,7 +70,23 @@ function RoadmapContent({
       {/* Roadmap Columns */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {statusCategories.map((category) => (
-          <section key={category.name}>
+          <section
+            key={category.name}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+
+              const id = Number(e.dataTransfer.getData("suggestionId"));
+
+              if (!id) return;
+
+              onStatusChange(id, category.name);
+              setDraggingId(null);
+            }}
+          >
             {/* Category Header */}
             <div className="mb-5">
               <div className="flex items-center gap-2">
@@ -108,6 +115,18 @@ function RoadmapContent({
               {category.items.map((suggestion) => (
                 <article
                   key={suggestion.id}
+                  draggable
+                  onDragStart={(e) => {
+                    setDraggingId(suggestion.id);
+                    e.dataTransfer.setData(
+                      "suggestionId",
+                      String(suggestion.id),
+                    );
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragEnd={() => {
+                    setDraggingId(null);
+                  }}
                   onClick={() => onView(suggestion)}
                   className={`cursor-pointer overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
                     category.color === "orange"

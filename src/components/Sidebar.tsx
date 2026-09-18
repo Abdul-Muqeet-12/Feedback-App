@@ -7,11 +7,15 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-import type { CategoryFilter } from "../types/feedback";
+import type { CategoryFilter, StatusFilter } from "../types/feedback";
 
 interface SidebarProps {
   filterCategory: CategoryFilter;
   setFilterCategory: (category: CategoryFilter) => void;
+
+  filterStatus: StatusFilter;
+
+  setFilterStatus: React.Dispatch<React.SetStateAction<StatusFilter>>;
 
   roadmapCount: {
     planned: number;
@@ -26,6 +30,8 @@ interface SidebarProps {
 function Sidebar({
   filterCategory,
   setFilterCategory,
+  filterStatus,
+  setFilterStatus,
   roadmapCount,
   openRoadmap,
   openAdd,
@@ -108,7 +114,15 @@ function Sidebar({
 
         <div className="space-y-4">
           {/* Planned */}
-          <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() =>
+              setFilterStatus(filterStatus === "Planned" ? "All" : "Planned")
+            }
+            className={`flex w-full items-center justify-between rounded-lg p-2 transition ${
+              filterStatus === "Planned" ? "bg-orange-50" : "hover:bg-gray-50"
+            }`}
+          >
             <div className="flex items-center gap-3">
               <span className="h-2.5 w-2.5 rounded-full bg-orange-400"></span>
 
@@ -122,10 +136,22 @@ function Sidebar({
             <span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-500">
               {roadmapCount.planned}
             </span>
-          </div>
+          </button>
 
           {/* In Progress */}
-          <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() =>
+              setFilterStatus(
+                filterStatus === "In Progress" ? "All" : "In Progress",
+              )
+            }
+            className={`flex w-full items-center justify-between rounded-lg p-2 transition ${
+              filterStatus === "In Progress"
+                ? "bg-purple-50"
+                : "hover:bg-gray-50"
+            }`}
+          >
             <div className="flex items-center gap-3">
               <span className="h-2.5 w-2.5 rounded-full bg-purple-500"></span>
 
@@ -139,10 +165,18 @@ function Sidebar({
             <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-500">
               {roadmapCount.inProgress}
             </span>
-          </div>
+          </button>
 
           {/* Live */}
-          <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() =>
+              setFilterStatus(filterStatus === "Live" ? "All" : "Live")
+            }
+            className={`flex w-full items-center justify-between rounded-lg p-2 transition ${
+              filterStatus === "Live" ? "bg-cyan-50" : "hover:bg-gray-50"
+            }`}
+          >
             <div className="flex items-center gap-3">
               <span className="h-2.5 w-2.5 rounded-full bg-cyan-400"></span>
 
@@ -156,7 +190,7 @@ function Sidebar({
             <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-bold text-cyan-500">
               {roadmapCount.live}
             </span>
-          </div>
+          </button>
         </div>
 
         {/* Add Feedback */}

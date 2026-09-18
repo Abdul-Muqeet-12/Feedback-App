@@ -4,6 +4,8 @@ export type CategoryFilter = "All" | Category;
 
 export type Status = "Planned" | "In Progress" | "Live";
 
+export type StatusFilter = Status | "All";
+
 export interface Suggestion {
   id: number;
   title: string;
