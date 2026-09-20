@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import RoadmapContent from "./RoadmapContent";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { toggleUpvote, updateSuggestionStatus } from "../redux/feedbackSlice";
+import { toggleUpvote, reorderSuggestion } from "../redux/feedbackSlice";
 import type { Suggestion } from "../types/feedback";
 import type { RootState, AppDispatch } from "../redux/store";
 
@@ -24,12 +24,16 @@ function RoadmapModal({ isOpen, onClose }: RoadmapModalProps) {
     dispatch(toggleUpvote(id));
   };
 
-  // Handle roadmap status change
-  const handleStatusChange = (id: number, status: Suggestion["status"]) => {
+  const handleReorder = (
+    id: number,
+    status: Suggestion["status"],
+    newIndex: number,
+  ) => {
     dispatch(
-      updateSuggestionStatus({
+      reorderSuggestion({
         id,
         status,
+        newIndex,
       }),
     );
   };
@@ -82,7 +86,7 @@ function RoadmapModal({ isOpen, onClose }: RoadmapModalProps) {
             onView={handleView}
             onAdd={openAdd}
             onUpvote={handleUpvote}
-            onStatusChange={handleStatusChange}
+            onReorder={handleReorder}
           />
         </div>
       </div>

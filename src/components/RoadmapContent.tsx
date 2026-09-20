@@ -7,7 +7,11 @@ interface RoadmapContentProps {
   onView: (item: Suggestion) => void;
   onAdd: () => void;
   onUpvote: (id: number) => void;
-  onStatusChange: (id: number, status: Suggestion["status"]) => void;
+  onReorder: (
+    id: number,
+    status: Suggestion["status"],
+    newIndex: number,
+  ) => void;
 }
 
 function RoadmapContent({
@@ -15,7 +19,7 @@ function RoadmapContent({
   onView,
   onAdd,
   onUpvote,
-  onStatusChange,
+  onReorder,
 }: RoadmapContentProps) {
   const statusCategories = [
     {
@@ -39,6 +43,11 @@ function RoadmapContent({
   ];
 
   const [draggingId, setDraggingId] = useState<number | null>(null);
+
+  const [dragOverPosition, setDragOverPosition] = useState<{
+    status: Suggestion["status"];
+    index: number;
+  } | null>(null);
 
   return (
     <div>
@@ -81,10 +90,12 @@ function RoadmapContent({
 
               const id = Number(e.dataTransfer.getData("suggestionId"));
 
-              if (!id) return;
+              if (!id || !dragOverPosition) return;
 
-              onStatusChange(id, category.name);
+              onReorder(id, dragOverPosition.status, dragOverPosition.index);
+
               setDraggingId(null);
+              setDragOverPosition(null);
             }}
           >
             {/* Category Header */}
@@ -112,88 +123,151 @@ function RoadmapContent({
 
             {/* Feedback Items */}
             <div className="space-y-4">
-              {category.items.map((suggestion) => (
-                <article
-                  key={suggestion.id}
-                  draggable
-                  onDragStart={(e) => {
-                    setDraggingId(suggestion.id);
-                    e.dataTransfer.setData(
-                      "suggestionId",
-                      String(suggestion.id),
-                    );
-                    e.dataTransfer.effectAllowed = "move";
-                  }}
-                  onDragEnd={() => {
-                    setDraggingId(null);
-                  }}
-                  onClick={() => onView(suggestion)}
-                  className={`cursor-pointer overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
-                    category.color === "orange"
-                      ? "border-t-4 border-t-orange-400"
-                      : category.color === "purple"
-                        ? "border-t-4 border-t-purple-500"
-                        : "border-t-4 border-t-cyan-400"
-                  }`}
-                >
-                  {/* Title */}
-                  <h3 className="text-base font-bold text-gray-800 transition hover:text-purple-600">
-                    {suggestion.title}
-                  </h3>
+              {category.items.map((suggestion, index) => (
+                <div key={suggestion.id}>
+                  {dragOverPosition?.status === category.name &&
+                    dragOverPosition.index === index &&
+                    draggingId !== suggestion.id && (
+                      <div className="mb-4 h-24 rounded-2xl border-2 border-dashed border-purple-400 bg-purple-50">
+                        <div className="flex h-full items-center justify-center">
+                          <p className="text-sm font-semibold text-purple-500">
+                            Drop feedback here
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  <article
+                    key={suggestion.id}
+                    draggable
+                    onDragStart={(e) => {
+                      setDraggingId(suggestion.id);
+                      e.dataTransfer.setData(
+                        "suggestionId",
+                        String(suggestion.id),
+                      );
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
 
-                  {/* Description */}
-                  <p className="mt-2 text-sm leading-6 text-gray-500">
-                    {suggestion.description}
-                  </p>
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const middle = rect.top + rect.height / 2;
 
-                  {/* Category */}
-                  <span
-                    className={`mt-4 inline-flex rounded-lg px-3 py-1.5 text-xs font-bold ${
-                      suggestion.category === "Bug"
-                        ? "bg-red-50 text-red-500"
-                        : "bg-indigo-50 text-indigo-600"
+                      const currentIndex = category.items.findIndex(
+                        (item) => item.id === suggestion.id,
+                      );
+
+                      const targetIndex =
+                        e.clientY < middle ? currentIndex : currentIndex + 1;
+
+                      setDragOverPosition({
+                        status: category.name,
+                        index: targetIndex,
+                      });
+                    }}
+                    onDragEnd={() => {
+                      setDraggingId(null);
+                      setDragOverPosition(null);
+                    }}
+                    onClick={() => onView(suggestion)}
+                    className={`cursor-pointer overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+                      category.color === "orange"
+                        ? "border-t-4 border-t-orange-400"
+                        : category.color === "purple"
+                          ? "border-t-4 border-t-purple-500"
+                          : "border-t-4 border-t-cyan-400"
                     }`}
                   >
-                    {suggestion.category}
-                  </span>
+                    {/* Title */}
+                    <h3 className="text-base font-bold text-gray-800 transition hover:text-purple-600">
+                      {suggestion.title}
+                    </h3>
 
-                  {/* Bottom */}
-                  <div className="mt-5 flex items-center justify-between">
-                    {/* Upvote */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onUpvote(suggestion.id);
-                      }}
-                      className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition ${
-                        suggestion.upvoted
-                          ? "bg-purple-100 text-purple-600"
-                          : "bg-gray-100 text-gray-700 hover:bg-purple-50 hover:text-purple-500"
+                    {/* Description */}
+                    <p className="mt-2 text-sm leading-6 text-gray-500">
+                      {suggestion.description}
+                    </p>
+
+                    {/* Category */}
+                    <span
+                      className={`mt-4 inline-flex rounded-lg px-3 py-1.5 text-xs font-bold ${
+                        suggestion.category === "Bug"
+                          ? "bg-red-50 text-red-500"
+                          : "bg-indigo-50 text-indigo-600"
                       }`}
                     >
-                      <ChevronUp size={16} />
+                      {suggestion.category}
+                    </span>
 
-                      {suggestion.upvotes}
-                    </button>
+                    {/* Bottom */}
+                    <div className="mt-5 flex items-center justify-between">
+                      {/* Upvote */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUpvote(suggestion.id);
+                        }}
+                        className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition ${
+                          suggestion.upvoted
+                            ? "bg-purple-100 text-purple-600"
+                            : "bg-gray-100 text-gray-700 hover:bg-purple-50 hover:text-purple-500"
+                        }`}
+                      >
+                        <ChevronUp size={16} />
 
-                    {/* Comments */}
-                    <div className="flex items-center gap-1.5 text-gray-400">
-                      <MessageCircle size={17} />
+                        {suggestion.upvotes}
+                      </button>
 
-                      <span className="text-xs font-bold">
-                        {suggestion.comments}
-                      </span>
+                      {/* Comments */}
+                      <div className="flex items-center gap-1.5 text-gray-400">
+                        <MessageCircle size={17} />
+
+                        <span className="text-xs font-bold">
+                          {suggestion.comments}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </article>
+                  </article>
+
+                  {dragOverPosition?.status === category.name &&
+                    dragOverPosition.index === index + 1 &&
+                    draggingId !== suggestion.id &&
+                    index === category.items.length - 1 && (
+                      <div className="mt-4 h-24 rounded-2xl border-2 border-dashed border-purple-400 bg-purple-50">
+                        <div className="flex h-full items-center justify-center">
+                          <p className="text-sm font-semibold text-purple-500">
+                            Drop feedback here
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                </div>
               ))}
 
               {/* Empty State */}
-              {category.items.length === 0 && (
+              {category.items.length === 0 && draggingId === null && (
                 <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-6 text-center">
                   <p className="text-sm font-medium text-gray-400">
                     No feedback in {category.name.toLowerCase()}.
+                  </p>
+                </div>
+              )}
+
+              {category.items.length === 0 && draggingId !== null && (
+                <div
+                  className="flex h-24 items-center justify-center rounded-2xl border-2 border-dashed border-purple-400 bg-purple-50"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+
+                    setDragOverPosition({
+                      status: category.name,
+                      index: 0,
+                    });
+                  }}
+                >
+                  <p className="text-sm font-semibold text-purple-500">
+                    Drop feedback here
                   </p>
                 </div>
               )}

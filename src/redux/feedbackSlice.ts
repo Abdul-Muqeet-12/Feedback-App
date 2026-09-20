@@ -83,6 +83,48 @@ const feedbackSlice = createSlice({
       }
     },
 
+    reorderSuggestion: (
+      state,
+      action: PayloadAction<{
+        id: number;
+        status: Status;
+        newIndex: number;
+      }>,
+    ) => {
+      const { id, status, newIndex } = action.payload;
+
+      const currentIndex = state.suggestions.findIndex(
+        (suggestion) => suggestion.id === id,
+      );
+
+      if (currentIndex === -1) return;
+
+      // Remove the dragged card
+      const [movedSuggestion] = state.suggestions.splice(currentIndex, 1);
+
+      // Update status
+      movedSuggestion.status = status;
+
+      // Find all cards belonging to the destination status
+      const destinationIndexes = state.suggestions
+        .map((suggestion, index) => (suggestion.status === status ? index : -1))
+        .filter((index) => index !== -1);
+
+      // If destination column is empty
+      if (destinationIndexes.length === 0) {
+        state.suggestions.push(movedSuggestion);
+        return;
+      }
+
+      // Insert before the card at the requested position
+      const targetIndex =
+        newIndex >= destinationIndexes.length
+          ? destinationIndexes[destinationIndexes.length - 1] + 1
+          : destinationIndexes[newIndex];
+
+      state.suggestions.splice(targetIndex, 0, movedSuggestion);
+    },
+
     deleteSuggestion: (state, action: PayloadAction<number>) => {
       const id = action.payload;
 
@@ -131,6 +173,7 @@ export const {
   addSuggestion,
   updateSuggestion,
   updateSuggestionStatus,
+  reorderSuggestion,
   deleteSuggestion,
   toggleUpvote,
   addComment,
