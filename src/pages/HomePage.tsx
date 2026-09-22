@@ -12,7 +12,6 @@ import type {
   SuggestionFormData,
 } from "../types/feedback";
 import type { AppDispatch, RootState } from "../redux/store";
-import RoadmapModal from "../components/RoadmapModal";
 
 type SortOption =
   | "Most Upvotes"
@@ -35,7 +34,6 @@ function HomePage() {
   const [sortBy, setSortBy] = useState<SortOption>("Most Upvotes");
   const [filterCategory, setFilterCategory] = useState<CategoryFilter>("All");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("All");
-  const [roadmapOpen, setRoadmapOpen] = useState(false);
 
   const filteredSuggestions = suggestions.filter((suggestion) => {
     const categoryMatch =
@@ -73,9 +71,7 @@ function HomePage() {
   // Close Add Feedback modal
   const closeModel = () => navigate(-1);
 
-  const openRoadmap = () => setRoadmapOpen(true);
-
-  const closeRoadmap = () => setRoadmapOpen(false);
+  const openRoadmap = () => navigate("/roadmap");
 
   // Add new suggestion
   const handleAdd = (payload: SuggestionFormData) => {
@@ -285,11 +281,6 @@ function HomePage() {
             onAdd={handleAdd}
             editingFeedback={null}
           />
-        )}
-
-        {/* Roadmap Modal */}
-        {roadmapOpen && (
-          <RoadmapModal isOpen={roadmapOpen} onClose={closeRoadmap} />
         )}
       </div>
     </main>

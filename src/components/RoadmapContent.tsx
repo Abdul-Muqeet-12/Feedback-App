@@ -49,6 +49,73 @@ function RoadmapContent({
     index: number;
   } | null>(null);
 
+  // Calculate where the card should be inserted
+  const calculateDropIndex = (
+    e: React.DragEvent<HTMLElement>,
+    items: Suggestion[],
+  ) => {
+    if (items.length === 0) {
+      return 0;
+    }
+
+    const mouseY = e.clientY;
+
+    for (let index = 0; index < items.length; index++) {
+      const card = document.querySelector(
+        `[data-suggestion-id="${items[index].id}"]`,
+      );
+
+      if (!card) continue;
+
+      const rect = card.getBoundingClientRect();
+      const cardMiddle = rect.top + rect.height / 2;
+
+      if (mouseY < cardMiddle) {
+        return index;
+      }
+    }
+
+    return items.length;
+  };
+
+  // Handle drag over the whole column
+  const handleColumnDragOver = (
+    e: React.DragEvent<HTMLElement>,
+    status: Suggestion["status"],
+    items: Suggestion[],
+  ) => {
+    e.preventDefault();
+
+    e.dataTransfer.dropEffect = "move";
+
+    const index = calculateDropIndex(e, items);
+
+    setDragOverPosition({
+      status,
+      index,
+    });
+  };
+
+  // Handle drop anywhere inside the column
+  const handleColumnDrop = (
+    e: React.DragEvent<HTMLElement>,
+    status: Suggestion["status"],
+    items: Suggestion[],
+  ) => {
+    e.preventDefault();
+
+    const id = Number(e.dataTransfer.getData("suggestionId"));
+
+    if (!id) return;
+
+    const index = calculateDropIndex(e, items);
+
+    onReorder(id, status, index);
+
+    setDraggingId(null);
+    setDragOverPosition(null);
+  };
+
   return (
     <div>
       {/* Header */}
@@ -81,22 +148,11 @@ function RoadmapContent({
         {statusCategories.map((category) => (
           <section
             key={category.name}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = "move";
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-
-              const id = Number(e.dataTransfer.getData("suggestionId"));
-
-              if (!id || !dragOverPosition) return;
-
-              onReorder(id, dragOverPosition.status, dragOverPosition.index);
-
-              setDraggingId(null);
-              setDragOverPosition(null);
-            }}
+            onDragOver={(e) =>
+              handleColumnDragOver(e, category.name, category.items)
+            }
+            onDrop={(e) => handleColumnDrop(e, category.name, category.items)}
+            className="min-h-[400px]"
           >
             {/* Category Header */}
             <div className="mb-5">
@@ -121,156 +177,124 @@ function RoadmapContent({
               </p>
             </div>
 
-            {/* Feedback Items */}
-            <div className="space-y-4">
-              {category.items.map((suggestion, index) => (
-                <div key={suggestion.id}>
-                  {dragOverPosition?.status === category.name &&
-                    dragOverPosition.index === index &&
-                    draggingId !== suggestion.id && (
-                      <div className="mb-4 h-24 rounded-2xl border-2 border-dashed border-purple-400 bg-purple-50">
-                        <div className="flex h-full items-center justify-center">
-                          <p className="text-sm font-semibold text-purple-500">
-                            Drop feedback here
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  <article
-                    key={suggestion.id}
-                    draggable
-                    onDragStart={(e) => {
-                      setDraggingId(suggestion.id);
-                      e.dataTransfer.setData(
-                        "suggestionId",
-                        String(suggestion.id),
-                      );
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const middle = rect.top + rect.height / 2;
-
-                      const currentIndex = category.items.findIndex(
-                        (item) => item.id === suggestion.id,
-                      );
-
-                      const targetIndex =
-                        e.clientY < middle ? currentIndex : currentIndex + 1;
-
-                      setDragOverPosition({
-                        status: category.name,
-                        index: targetIndex,
-                      });
-                    }}
-                    onDragEnd={() => {
-                      setDraggingId(null);
-                      setDragOverPosition(null);
-                    }}
-                    onClick={() => onView(suggestion)}
-                    className={`cursor-pointer overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
-                      category.color === "orange"
-                        ? "border-t-4 border-t-orange-400"
-                        : category.color === "purple"
-                          ? "border-t-4 border-t-purple-500"
-                          : "border-t-4 border-t-cyan-400"
+            {/* Whole Column Drop Area */}
+            <div className="min-h-[300px]">
+              {category.items.length === 0 ? (
+                <div
+                  className={`flex min-h-[180px] items-center justify-center rounded-2xl border-2 border-dashed transition ${
+                    draggingId !== null
+                      ? "border-purple-400 bg-purple-50"
+                      : "border-gray-200 bg-white"
+                  }`}
+                >
+                  <p
+                    className={`text-sm font-semibold ${
+                      draggingId !== null ? "text-purple-500" : "text-gray-400"
                     }`}
                   >
-                    {/* Title */}
-                    <h3 className="text-base font-bold text-gray-800 transition hover:text-purple-600">
-                      {suggestion.title}
-                    </h3>
+                    {draggingId !== null
+                      ? "Drop feedback anywhere here"
+                      : `No feedback in ${category.name.toLowerCase()}.`}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {category.items.map((suggestion) => (
+                    <article
+                      key={suggestion.id}
+                      data-suggestion-id={suggestion.id}
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggingId(suggestion.id);
 
-                    {/* Description */}
-                    <p className="mt-2 text-sm leading-6 text-gray-500">
-                      {suggestion.description}
-                    </p>
+                        e.dataTransfer.setData(
+                          "suggestionId",
+                          String(suggestion.id),
+                        );
 
-                    {/* Category */}
-                    <span
-                      className={`mt-4 inline-flex rounded-lg px-3 py-1.5 text-xs font-bold ${
-                        suggestion.category === "Bug"
-                          ? "bg-red-50 text-red-500"
-                          : "bg-indigo-50 text-indigo-600"
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragEnd={() => {
+                        setDraggingId(null);
+                        setDragOverPosition(null);
+                      }}
+                      onClick={() => onView(suggestion)}
+                      className={`cursor-grab overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing ${
+                        category.color === "orange"
+                          ? "border-t-4 border-t-orange-400"
+                          : category.color === "purple"
+                            ? "border-t-4 border-t-purple-500"
+                            : "border-t-4 border-t-cyan-400"
+                      } ${
+                        draggingId === suggestion.id
+                          ? "opacity-50"
+                          : "opacity-100"
                       }`}
                     >
-                      {suggestion.category}
-                    </span>
+                      {/* Title */}
+                      <h3 className="text-base font-bold text-gray-800 transition hover:text-purple-600">
+                        {suggestion.title}
+                      </h3>
 
-                    {/* Bottom */}
-                    <div className="mt-5 flex items-center justify-between">
-                      {/* Upvote */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onUpvote(suggestion.id);
-                        }}
-                        className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition ${
-                          suggestion.upvoted
-                            ? "bg-purple-100 text-purple-600"
-                            : "bg-gray-100 text-gray-700 hover:bg-purple-50 hover:text-purple-500"
+                      {/* Description */}
+                      <p className="mt-2 text-sm leading-6 text-gray-500">
+                        {suggestion.description}
+                      </p>
+
+                      {/* Category */}
+                      <span
+                        className={`mt-4 inline-flex rounded-lg px-3 py-1.5 text-xs font-bold ${
+                          suggestion.category === "Bug"
+                            ? "bg-red-50 text-red-500"
+                            : "bg-indigo-50 text-indigo-600"
                         }`}
                       >
-                        <ChevronUp size={16} />
+                        {suggestion.category}
+                      </span>
 
-                        {suggestion.upvotes}
-                      </button>
+                      {/* Bottom */}
+                      <div className="mt-5 flex items-center justify-between">
+                        {/* Upvote */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpvote(suggestion.id);
+                          }}
+                          className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition ${
+                            suggestion.upvoted
+                              ? "bg-purple-100 text-purple-600"
+                              : "bg-gray-100 text-gray-700 hover:bg-purple-50 hover:text-purple-500"
+                          }`}
+                        >
+                          <ChevronUp size={16} />
 
-                      {/* Comments */}
-                      <div className="flex items-center gap-1.5 text-gray-400">
-                        <MessageCircle size={17} />
+                          {suggestion.upvotes}
+                        </button>
 
-                        <span className="text-xs font-bold">
-                          {suggestion.comments}
-                        </span>
-                      </div>
-                    </div>
-                  </article>
+                        {/* Comments */}
+                        <div className="flex items-center gap-1.5 text-gray-400">
+                          <MessageCircle size={17} />
 
-                  {dragOverPosition?.status === category.name &&
-                    dragOverPosition.index === index + 1 &&
-                    draggingId !== suggestion.id &&
-                    index === category.items.length - 1 && (
-                      <div className="mt-4 h-24 rounded-2xl border-2 border-dashed border-purple-400 bg-purple-50">
-                        <div className="flex h-full items-center justify-center">
-                          <p className="text-sm font-semibold text-purple-500">
-                            Drop feedback here
-                          </p>
+                          <span className="text-xs font-bold">
+                            {suggestion.comments}
+                          </span>
                         </div>
                       </div>
-                    )}
-                </div>
-              ))}
-
-              {/* Empty State */}
-              {category.items.length === 0 && draggingId === null && (
-                <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-6 text-center">
-                  <p className="text-sm font-medium text-gray-400">
-                    No feedback in {category.name.toLowerCase()}.
-                  </p>
+                    </article>
+                  ))}
                 </div>
               )}
 
-              {category.items.length === 0 && draggingId !== null && (
-                <div
-                  className="flex h-24 items-center justify-center rounded-2xl border-2 border-dashed border-purple-400 bg-purple-50"
-                  onDragOver={(e) => {
-                    e.preventDefault();
-
-                    setDragOverPosition({
-                      status: category.name,
-                      index: 0,
-                    });
-                  }}
-                >
-                  <p className="text-sm font-semibold text-purple-500">
-                    Drop feedback here
-                  </p>
-                </div>
-              )}
+              {/* Drop Position Indicator */}
+              {draggingId !== null &&
+                dragOverPosition?.status === category.name && (
+                  <div className="pointer-events-none mt-3 rounded-xl border-2 border-dashed border-purple-400 bg-purple-50 px-4 py-3 text-center">
+                    <p className="text-xs font-semibold text-purple-500">
+                      Drop feedback here
+                    </p>
+                  </div>
+                )}
             </div>
           </section>
         ))}
